@@ -2,6 +2,7 @@ library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.std_logic_unsigned.all;
 use     ieee.std_logic_misc.all;
+use 	ieee.math_real.all;
 use STD.textio.all;                     -- basic I/O
 use IEEE.std_logic_textio.all;          -- I/O for logic types
 
@@ -32,7 +33,7 @@ architecture behavioural of SERIAL_SUM is
   signal   tx_nadaj	:std_logic;				-- flaga zadania nadawania
   signal   tx_wysylanie	:std_logic;				-- flaga potwierdzenia nadawania
 
-  type     INSTRUKCJA	is (WCZYTAJ, WYSYLAJ, STOJ); -- lista instrukcji pracy interpretera
+  type     INSTRUKCJA	is (WCZYTAJ, WYSYLAJ, STOJ, CZEKAJ); -- lista instrukcji pracy interpretera
   signal   rozkaz	:INSTRUKCJA;				-- rejestr maszyny stanow interpretera
   
   type		DZIALANIE is (INICJUJ, DODAJ, ODEJMIJ, LICZ);
@@ -42,9 +43,6 @@ architecture behavioural of SERIAL_SUM is
   signal   obecny: integer;
 
   constant SLOWO_ZERO	:std_logic_vector(B_SLOWA-1 downto 0) := (others => '0'); -- slowo z ustawiona wartoscia 0
-
-  constant T_PRZERWY	:integer := (F_ZEGARA/L_BODOW)*L_BODOW_PRZERWY; -- liczba okresow zegara przerwy w nadawaniu
-  signal   lprzerwy	:natural range 0 to T_PRZERWY;		-- licznik taktow przerwy w nadawaniu
   
 begin								-- cialo architekury sumowania
 
@@ -98,10 +96,10 @@ begin								-- cialo architekury sumowania
          return(10);						-- zwrocenie flagi bledu jako wartosci 10
        end if;							-- zakonczenie instukcji warunkowej
      end function;						-- zakonczenie funkcji
-
-     variable suma_cyfr :natural range 0 to 19;
 	  
 	  variable wczytana :natural range 0 to 9;
+	  
+	  variable my_line : line;
 
    begin							-- poczatek ciala procesu kalkulatora
 
@@ -147,7 +145,7 @@ begin								-- cialo architekury sumowania
 						when ODEJMIJ => wynik <= wynik - obecny;
 						when LICZ => rozkaz <= STOJ;
 					end case;
-					operacja <= LICZ;
+					rozkaz <= WYSYLAJ;
 					obecny <= 0;
 				elsif (wyzn_cyfre(rx_slowo)/=10) then		-- odebrano znak cyfry
 					wczytana := wyzn_cyfre(rx_slowo);		-- zapamietanie warosci cyfry w wektorze arg1
@@ -156,27 +154,45 @@ begin								-- cialo architekury sumowania
 					rozkaz <= STOJ;
 				 end if;
 				 
-				 when WYSYLAJ => null;
-				 
 				 when STOJ => null;
-				 
+				 when others =>null;
          end case;
        end if;							-- zakonczenie instukcji warunkowej
- 
-     end if;							-- zakonczenie instukcji warunkowej proces
-
-   end process;							-- zakonczenie ciala kalkulatora
-  my_print : process is                  -- a process is parallel
-			variable my_line : line;  -- type 'line' comes from textio
-		 begin
-			write(my_line, string'("Wyniki:"));   -- formatting
+		 
+		 case rozkaz is
+			when WYSYLAJ =>
+				 if (wynik = 0) then
+					rozkaz <= STOJ;
+				 elsif (wynik<0) then
+					tx_slowo <= SLOWO_ZERO+character'pos('-');
+					tx_nadaj <= '1';
+					wynik <= -wynik;
+					rozkaz <= CZEKAJ;
+				 else
+					tx_slowo <= SLOWO_ZERO+character'pos('0')+wynik/(10 ** (integer(ceil(log10(real(wynik)))) - 1));
+					wynik <= wynik mod (10 ** (integer(ceil(log10(real(wynik)))) - 1));
+					tx_nadaj <= '1';
+					rozkaz <= CZEKAJ;
+				 end if;
+				 
+			when CZEKAJ =>
+				 if (tx_nadaj='0' and tx_wysylanie='0') then
+					 rozkaz <= WYSYLAJ;
+				 end if;
+				 
+			when others =>null;
+		end case;
+		
+		write(my_line, string'("Wyniki:"));   -- formatting
 			writeline(output, my_line);               -- write to "output"
 			write(my_line, string'("  wynik= "));
 			write(my_line, wynik);  -- format 'counter' as integer
 			write(my_line, string'("  obecny= "));
 			write(my_line, obecny);                     -- format time
-			writeline(output, my_line);              -- write to display
-			wait for 100 ns;
-		 end process my_print;
+			writeline(output, my_line);
+ 
+     end if;							-- zakonczenie instukcji warunkowej proces
+
+   end process;							-- zakonczenie ciala kalkulatora
 end behavioural;
 

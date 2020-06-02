@@ -6,8 +6,8 @@ use     ieee.std_logic_misc.all;
 
 entity SERIAL_SUM_TB is
   generic (
-    F_ZEGARA		:natural := 20000000;			-- czestotliwosc zegata w [Hz]
-    L_BODOW		:natural := 2000000;			-- predkosc nadawania w [bodach]
+    F_ZEGARA		:natural := 20_000_000;			-- czestotliwosc zegata w [Hz]
+    L_BODOW		:natural := 5_000_000;			-- predkosc nadawania w [bodach]
     B_SLOWA		:natural := 8;				-- liczba bitow slowa danych (5-8)
     B_STOPOW		:natural := 2;				-- liczba bitow stopu (1-2)
     L_CYFR		:natural := 3;				-- liczba cyfr dziesietnych
@@ -25,7 +25,7 @@ architecture behavioural of SERIAL_SUM_TB is
   constant O_ZEGARA	:time := 1 sec/F_ZEGARA;
   constant O_BITU	:time := 1 sec/L_BODOW;
 
-  constant ROZKAZ	:string := "123+679=";
+  constant ROZKAZ	:string := "125-453-67+9-30=";
   --constant ROZKAZ	:string := "123-"&CR&"123+678=";
   signal   WYNIK	:string(ROZKAZ'length+L_CYFR downto 1);
  
