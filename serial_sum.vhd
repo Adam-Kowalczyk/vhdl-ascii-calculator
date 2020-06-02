@@ -3,127 +3,126 @@ use     ieee.std_logic_1164.all;
 use     ieee.std_logic_unsigned.all;
 use     ieee.std_logic_misc.all;
 use 	ieee.math_real.all;
-use STD.textio.all;                     -- basic I/O
-use IEEE.std_logic_textio.all;          -- I/O for logic types
+use STD.textio.all;                     
+use IEEE.std_logic_textio.all;          
 
 entity SERIAL_SUM is
   generic (
-    F_ZEGARA		:natural := 20_000_000;			-- czestotliwosc zegata w [Hz]
-    L_BODOW		:natural := 9600;			-- predkosc nadawania w [bodach]
-    B_SLOWA		:natural := 8;				-- liczba bitow slowa danych (5-8)
-    B_STOPOW		:natural := 2;				-- liczba bitow stopu (1-2)
-    L_CYFR		:natural := 3;				-- liczba cyfr dziesietnych
-    L_BODOW_PRZERWY	:natural := 0				-- czas przerwy w nadawaniu w [bodach]
+    F_ZEGARA		:natural := 20_000_000;			
+    L_BODOW		:natural := 9600;			
+    B_SLOWA		:natural := 8;				
+    B_STOPOW		:natural := 2;				
+    L_CYFR		:natural := 3								
   );
   port (
-    R			:in  std_logic;				-- sygnal resetowania
-    C			:in  std_logic;				-- zegar taktujacy
-    RX			:in  std_logic;				-- odbierany sygnal szeregowy
-    TX			:out std_logic				-- wysylany sygnal szeregowy
+    R			:in  std_logic;				
+    C			:in  std_logic;				
+    RX			:in  std_logic;				
+    TX			:out std_logic				
   );
 end SERIAL_SUM;
 
 architecture behavioural of SERIAL_SUM is
 
-  signal   rx_slowo	:std_logic_vector(B_SLOWA-1 downto 0);	-- odebrane slowo danych
-  signal   rx_gotowe	:std_logic;				-- flaga potwierdzenia odbioru
-  signal   rx_blad	:std_logic;				-- flaga wykrycia bledu w odbiorze
+  signal   rx_slowo	:std_logic_vector(B_SLOWA-1 downto 0);	
+  signal   rx_gotowe	:std_logic;				
+  signal   rx_blad	:std_logic;				
 
-  signal   tx_slowo	:std_logic_vector(B_SLOWA-1 downto 0);	-- wysylane slowo danych
-  signal   tx_nadaj	:std_logic;				-- flaga zadania nadawania
-  signal   tx_wysylanie	:std_logic;				-- flaga potwierdzenia nadawania
+  signal   tx_slowo	:std_logic_vector(B_SLOWA-1 downto 0);	
+  signal   tx_nadaj	:std_logic;				
+  signal   tx_wysylanie	:std_logic;				
 
-  type     INSTRUKCJA	is (WCZYTAJ, ZACZWYSYL, WYSYLAJ, STOJ, CZEKAJ); -- lista instrukcji pracy interpretera
-  signal   rozkaz	:INSTRUKCJA;				-- rejestr maszyny stanow interpretera
+  type     INSTRUKCJA	is (WCZYTAJ, ZACZWYSYL, WYSYLAJ, STOJ, CZEKAJ); 
+  signal   rozkaz	:INSTRUKCJA;				
   
   type		DZIALANIE is (INICJUJ, DODAJ, ODEJMIJ);
   signal 	operacja: DZIALANIE;
 
-  signal   wynik		:integer ;		-- liczba argumentu 1
+  signal   wynik		:integer ;		
   signal   obecny: integer;
   
   signal   odbieranie	:std_logic;
   
   signal dlugosc_wyniku :integer;
 
-  constant SLOWO_ZERO	:std_logic_vector(B_SLOWA-1 downto 0) := (others => '0'); -- slowo z ustawiona wartoscia 0
+  constant SLOWO_ZERO	:std_logic_vector(B_SLOWA-1 downto 0) := (others => '0'); 
   
-begin								-- cialo architekury sumowania
+begin								
 
-  srx: entity work.SERIAL_RX(behavioural)			-- instancja odbirnika szeregowego 'SERIAL_RX'
-    generic map(						-- mapowanie parametrow biezacych
-      F_ZEGARA             => F_ZEGARA,				-- czestotliwosc zegata w [Hz]
-      L_BODOW              => L_BODOW,				-- predkosc odbierania w [bodach]
-      B_SLOWA              => B_SLOWA,				-- liczba bitow slowa danych (5-8)
-      B_STOPOW             => B_STOPOW				-- liczba bitow stopu (1-2)
+  srx: entity work.SERIAL_RX(behavioural)			
+    generic map(						
+      F_ZEGARA             => F_ZEGARA,				
+      L_BODOW              => L_BODOW,				
+      B_SLOWA              => B_SLOWA,				
+      B_STOPOW             => B_STOPOW				
     )
-    port map(							-- mapowanie sygnalow do portow
-      R                    => R,				-- sygnal resetowania
-      C                    => C,				-- zegar taktujacy
-      RX                   => RX,				-- odebrany sygnal szeregowy
-      SLOWO                => rx_slowo,				-- odebrane slowo danych
-      GOTOWE               => rx_gotowe,			-- flaga potwierdzenia odbioru
-      BLAD                 => rx_blad				-- flaga wykrycia bledu w odbiorze
+    port map(							
+      R                    => R,				
+      C                    => C,				
+      RX                   => RX,				
+      SLOWO                => rx_slowo,				
+      GOTOWE               => rx_gotowe,			
+      BLAD                 => rx_blad				
     );
 
-  stx: entity work.SERIAL_TX(behavioural)			-- instancja nadajnika szeregowego 'SERIAL_TX'
-    generic map(						-- mapowanie parametrow biezacych
-      F_ZEGARA             => F_ZEGARA,				-- czestotliwosc zegata w [Hz]
-      L_BODOW              => L_BODOW,				-- predkosc nadawania w [bodach]
-      B_SLOWA              => B_SLOWA,				-- liczba bitow slowa danych (5-8)
-      B_STOPOW             => B_STOPOW				-- liczba bitow stopu (1-2)
+  stx: entity work.SERIAL_TX(behavioural)			
+    generic map(						
+      F_ZEGARA             => F_ZEGARA,				
+      L_BODOW              => L_BODOW,				
+      B_SLOWA              => B_SLOWA,				
+      B_STOPOW             => B_STOPOW				
     )
-    port map(							-- mapowanie sygnalow do portow
-      R                    => R,				-- sygnal resetowania
-      C                    => C,				-- zegar taktujacy
-      TX                   => tx,				-- nadawany sygnal szeregowy
-      SLOWO                => tx_slowo,				-- nadawane slowo danych
-      NADAJ                => tx_nadaj,				-- flaga zadania nadawania
-      WYSYLANIE            => tx_wysylanie			-- flaga potwierdzenia nadawania
+    port map(							
+      R                    => R,				
+      C                    => C,				
+      TX                   => tx,				
+      SLOWO                => tx_slowo,				
+      NADAJ                => tx_nadaj,				
+      WYSYLANIE            => tx_wysylanie			
     );
 
-   process (R, C) is						-- proces kalkulatora
+   process (R, C) is						
 
-     function kod_znaku(c :character) return std_logic_vector is -- konwersja kodu znaku do rozmiaru slowa
-     begin							-- cialo funkcji
-       return(SLOWO_ZERO+character'pos(c));			-- wyznaczenia i zwrocenie wartosci slowa
-     end function;						-- zakonczenie funkcji
+     function kod_znaku(c :character) return std_logic_vector is 
+     begin							
+       return(SLOWO_ZERO+character'pos(c));			
+     end function;						
 
-     constant BLAD_ODBIORU    :std_logic_vector := kod_znaku('!'); -- slowo z kodem przypisanym do bledu odbioru
-     constant BLAD_INSTRUKCJI :std_logic_vector := kod_znaku('?'); -- slowo z kodem przypisanym do bledu instrukcji
+     constant BLAD_ODBIORU    :std_logic_vector := kod_znaku('!'); 
+     constant BLAD_INSTRUKCJI :std_logic_vector := kod_znaku('?'); 
 
-     function wyzn_cyfre(a :std_logic_vector) return natural is -- konwersja kodu slowa zawierajacego cyfre na warosc
-     begin							-- cialo funkcji
-       if (a>=kod_znaku('0') and a<=kod_znaku('9')) then	-- zbadanie czy kod slowa jest cyfra
-         return(CONV_INTEGER(a)-character'pos('0'));		-- wyznaczenia i zwrocenie wartosci cyfry
-       else							-- lowo nie jest cyfra
-         return(10);						-- zwrocenie flagi bledu jako wartosci 10
-       end if;							-- zakonczenie instukcji warunkowej
-     end function;						-- zakonczenie funkcji
+     function wyzn_cyfre(a :std_logic_vector) return natural is 
+     begin							
+       if (a>=kod_znaku('0') and a<=kod_znaku('9')) then	
+         return(CONV_INTEGER(a)-character'pos('0'));		
+       else							
+         return(10);						
+       end if;							
+     end function;						
 	  
 	  variable wczytana :natural range 0 to 9;
 	  
 	  variable my_line : line;
 
-   begin							-- poczatek ciala procesu kalkulatora
+   begin							
 
-     if (R='1') then						-- asynchroniczna inicjalizacja rejestrow
-      tx_slowo	<= (others => '0');				-- wyzerowanie nadawanego slowa danych
-      tx_nadaj <= '0';						-- wyzerowanie flagi zadania nadawania
-      rozkaz   <= WCZYTAJ;					-- poczatkowy stan pracy interpretera
+     if (R='1') then						
+      tx_slowo	<= (others => '0');				
+      tx_nadaj <= '0';						
+      rozkaz   <= WCZYTAJ;					
 		operacja <= INICJUJ;
 		wynik <= 0;
 		obecny <= 0;
 		odbieranie <= '1';
 
-     elsif (rising_edge(C)) then				-- synchroniczna praca kalkulatora
+     elsif (rising_edge(C)) then				
 
-       tx_nadaj	<= '0';						-- defaultowe ustawienie flagi zadania nadawania
+       tx_nadaj	<= '0';						
 		
 		if (odbieranie ='1') then
-			if (rx_gotowe='1') then				-- obsluga potwierdzenia odbioru slowa przez 'SERIAL_RX'
-				case rozkaz is					-- badanie aktualnego stanu maszyny interpretera 
-					when WCZYTAJ =>					-- obsluga stanu ARGUMENT1
+			if (rx_gotowe='1') then				
+				case rozkaz is					
+					when WCZYTAJ =>					
 					if (rx_slowo=kod_znaku('+')) then
 						case operacja is
 							when INICJUJ => wynik <= obecny;
@@ -149,8 +148,8 @@ begin								-- cialo architekury sumowania
 						rozkaz <= ZACZWYSYL;
 						obecny <= 0;
 						odbieranie <= '0';
-					elsif (wyzn_cyfre(rx_slowo)/=10) then		-- odebrano znak cyfry
-						wczytana := wyzn_cyfre(rx_slowo);		-- zapamietanie warosci cyfry w wektorze arg1
+					elsif (wyzn_cyfre(rx_slowo)/=10) then		
+						wczytana := wyzn_cyfre(rx_slowo);		
 						obecny <= (obecny * 10) + wczytana;
 					 else
 						rozkaz <= STOJ;
@@ -158,7 +157,7 @@ begin								-- cialo architekury sumowania
 					 
 					 when others =>null;
 				end case;
-			 end if;							-- zakonczenie instukcji warunkowej
+			 end if;							
 		 else
 			 case rozkaz is
 				when ZACZWYSYL =>
@@ -195,12 +194,12 @@ begin								-- cialo architekury sumowania
 			end case;
 		end if;
 		
-		write(my_line, string'("Wyniki:"));   -- formatting
-			writeline(output, my_line);               -- write to "output"
+		write(my_line, string'("Wyniki:"));   
+			writeline(output, my_line);               
 			write(my_line, string'("  wynik= "));
-			write(my_line, wynik);  -- format 'counter' as integer
+			write(my_line, wynik);  
 			write(my_line, string'("  wczytana liczba= "));
-			write(my_line, obecny);                     -- format time
+			write(my_line, obecny);                     
 			writeline(output, my_line);
  
      end if;
