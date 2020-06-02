@@ -3,7 +3,7 @@ use     ieee.std_logic_1164.all;
 use     ieee.std_logic_unsigned.all;
 use     ieee.std_logic_misc.all;
 
-entity SERIAL_TX is
+entity UART_TX is
   generic (
     F_ZEGARA		:natural := 20000000;			
     L_BODOW		:natural := 9600;			
@@ -18,9 +18,9 @@ entity SERIAL_TX is
     NADAJ	:in  std_logic;					
     WYSYLANIE	:out std_logic					
   );
-end SERIAL_TX;
+end UART_TX;
 
-architecture behavioural of SERIAL_TX is
+architecture behavioural of UART_TX is
 
   signal   bufor	:std_logic_vector(SLOWO'range);		
 
@@ -117,4 +117,3 @@ begin
    TX <= nadawaj;		
    
 end behavioural;
-

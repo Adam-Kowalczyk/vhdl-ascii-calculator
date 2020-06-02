@@ -3,7 +3,7 @@ use     ieee.std_logic_1164.all;
 use     ieee.std_logic_unsigned.all;
 use     ieee.std_logic_misc.all;
 
-entity SERIAL_RX is
+entity UART_RX is
   generic (
     F_ZEGARA		:natural := 20000000;
     L_BODOW		:natural := 9600;
@@ -18,9 +18,9 @@ entity SERIAL_RX is
     GOTOWE	:out std_logic;					
     BLAD	:out std_logic					
   );
-end SERIAL_RX;
+end UART_RX;
 
-architecture behavioural of SERIAL_RX is
+architecture behavioural of UART_RX is
 
   signal   wejscie	:std_logic_vector(0 to 1);		
 

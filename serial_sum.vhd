@@ -6,13 +6,12 @@ use 	ieee.math_real.all;
 use STD.textio.all;                     
 use IEEE.std_logic_textio.all;          
 
-entity SERIAL_SUM is
+entity SERIAL_CALCULATOR is
   generic (
     F_ZEGARA		:natural := 20_000_000;			
     L_BODOW		:natural := 9600;			
     B_SLOWA		:natural := 8;				
-    B_STOPOW		:natural := 2;				
-    L_CYFR		:natural := 3								
+    B_STOPOW		:natural := 2							
   );
   port (
     R			:in  std_logic;				
@@ -20,9 +19,9 @@ entity SERIAL_SUM is
     RX			:in  std_logic;				
     TX			:out std_logic				
   );
-end SERIAL_SUM;
+end SERIAL_CALCULATOR;
 
-architecture behavioural of SERIAL_SUM is
+architecture behavioural of SERIAL_CALCULATOR is
 
   signal   rx_slowo	:std_logic_vector(B_SLOWA-1 downto 0);	
   signal   rx_gotowe	:std_logic;				
@@ -35,11 +34,14 @@ architecture behavioural of SERIAL_SUM is
   type     INSTRUKCJA	is (WCZYTAJ, ZACZWYSYL, WYSYLAJ, STOJ, CZEKAJ); 
   signal   rozkaz	:INSTRUKCJA;				
   
-  type		DZIALANIE is (INICJUJ, DODAJ, ODEJMIJ);
+  type		DZIALANIE is (INICJUJ, DODAJ, ODEJMIJ, MNOZENIE);
   signal 	operacja: DZIALANIE;
+  
+  signal 	przed_mnozeniem : DZIALANIE;
 
-  signal   wynik		:integer ;		
+  signal   wynik		:integer;		
   signal   obecny: integer;
+  signal   wyn_mnozenia		:integer ;
   
   signal   odbieranie	:std_logic;
   
@@ -49,7 +51,7 @@ architecture behavioural of SERIAL_SUM is
   
 begin								
 
-  srx: entity work.SERIAL_RX(behavioural)			
+  urx: entity work.UART_RX(behavioural)			
     generic map(						
       F_ZEGARA             => F_ZEGARA,				
       L_BODOW              => L_BODOW,				
@@ -65,7 +67,7 @@ begin
       BLAD                 => rx_blad				
     );
 
-  stx: entity work.SERIAL_TX(behavioural)			
+  utx: entity work.UART_TX(behavioural)			
     generic map(						
       F_ZEGARA             => F_ZEGARA,				
       L_BODOW              => L_BODOW,				
@@ -114,6 +116,7 @@ begin
 		wynik <= 0;
 		obecny <= 0;
 		odbieranie <= '1';
+		wyn_mnozenia <= 0;
 
      elsif (rising_edge(C)) then				
 
@@ -128,6 +131,13 @@ begin
 							when INICJUJ => wynik <= obecny;
 							when DODAJ => wynik <= wynik + obecny;
 							when ODEJMIJ => wynik <= wynik - obecny;
+							when MNOZENIE =>
+								case przed_mnozeniem is
+									when INICJUJ => wynik <= wyn_mnozenia*obecny;
+									when DODAJ => wynik <= wynik + wyn_mnozenia*obecny;
+									when ODEJMIJ => wynik <= wynik - wyn_mnozenia*obecny;
+									when others => null;
+								end case;
 						end case;
 						operacja <= DODAJ;
 						obecny <= 0;
@@ -136,6 +146,13 @@ begin
 							when INICJUJ => wynik <= obecny;
 							when DODAJ => wynik <= wynik + obecny;
 							when ODEJMIJ => wynik <= wynik - obecny;
+							when MNOZENIE =>
+								case przed_mnozeniem is
+									when INICJUJ => wynik <= wyn_mnozenia*obecny;
+									when DODAJ => wynik <= wynik + wyn_mnozenia*obecny;
+									when ODEJMIJ => wynik <= wynik - wyn_mnozenia*obecny;
+									when others => null;
+								end case;
 						end case;
 						operacja <= ODEJMIJ;
 						obecny <= 0;
@@ -144,10 +161,26 @@ begin
 							when INICJUJ => wynik <= obecny;
 							when DODAJ => wynik <= wynik + obecny;
 							when ODEJMIJ => wynik <= wynik - obecny;
+							when MNOZENIE =>
+								case przed_mnozeniem is
+									when INICJUJ => wynik <= wyn_mnozenia*obecny;
+									when DODAJ => wynik <= wynik + wyn_mnozenia*obecny;
+									when ODEJMIJ => wynik <= wynik - wyn_mnozenia*obecny;
+									when others => null;
+								end case;
 						end case;
 						rozkaz <= ZACZWYSYL;
 						obecny <= 0;
 						odbieranie <= '0';
+					elsif (rx_slowo=kod_znaku('*')) then
+						if(operacja /= MNOZENIE) then
+							wyn_mnozenia <= obecny;
+							przed_mnozeniem <= operacja;
+						else
+							wyn_mnozenia <= wyn_mnozenia * obecny;
+						end if;
+						operacja <= MNOZENIE;
+						obecny <= 0;
 					elsif (wyzn_cyfre(rx_slowo)/=10) then		
 						wczytana := wyzn_cyfre(rx_slowo);		
 						obecny <= (obecny * 10) + wczytana;
@@ -199,11 +232,12 @@ begin
 			write(my_line, string'("  wynik= "));
 			write(my_line, wynik);  
 			write(my_line, string'("  wczytana liczba= "));
-			write(my_line, obecny);                     
+			write(my_line, obecny);
+			write(my_line, string'("  mnozona liczba= "));
+			write(my_line, wyn_mnozenia);
 			writeline(output, my_line);
  
      end if;
 
    end process;
 end behavioural;
-

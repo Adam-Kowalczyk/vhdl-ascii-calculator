@@ -4,7 +4,7 @@ use     ieee.std_logic_unsigned.all;
 use     ieee.std_logic_arith.all;
 use     ieee.std_logic_misc.all;
 
-entity SERIAL_SUM_TB is
+entity SERIAL_CALCULATOR_TB is
   generic (
     F_ZEGARA		:natural := 20_000_000;			
     L_BODOW		:natural := 5_000_000;			
@@ -12,9 +12,9 @@ entity SERIAL_SUM_TB is
     B_STOPOW		:natural := 2;				
     L_CYFR		:natural := 3						
   );
-end SERIAL_SUM_TB;
+end SERIAL_CALCULATOR_TB;
 
-architecture behavioural of SERIAL_SUM_TB is
+architecture behavioural of SERIAL_CALCULATOR_TB is
 
   signal   R		:std_logic;
   signal   C		:std_logic;
@@ -24,7 +24,7 @@ architecture behavioural of SERIAL_SUM_TB is
   constant O_ZEGARA	:time := 1 sec/F_ZEGARA;
   constant O_BITU	:time := 1 sec/L_BODOW;
 
-  constant ROZKAZ	:string := "120-40-80=";
+  constant ROZKAZ	:string := "-60+5*4*10+80*20=";
   
   signal   WYNIK	:string(ROZKAZ'length+L_CYFR downto 1);
  
@@ -64,13 +64,12 @@ begin
   end process;
   
   RXO <= RX;
-  serial_sum_inst: entity work.SERIAL_SUM(behavioural)
+  serial_calculator_inst: entity work.SERIAL_CALCULATOR(behavioural)
     generic map (
       F_ZEGARA        => F_ZEGARA,
       L_BODOW         => L_BODOW,
       B_SLOWA         => B_SLOWA,
-      B_STOPOW        => B_STOPOW,
-      L_CYFR          => L_CYFR
+      B_STOPOW        => B_STOPOW
     )                      
     port map (             
       R             => R,
@@ -111,4 +110,3 @@ begin
   
 
 end behavioural;
-
