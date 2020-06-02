@@ -33,14 +33,18 @@ architecture behavioural of SERIAL_SUM is
   signal   tx_nadaj	:std_logic;				-- flaga zadania nadawania
   signal   tx_wysylanie	:std_logic;				-- flaga potwierdzenia nadawania
 
-  type     INSTRUKCJA	is (WCZYTAJ, WYSYLAJ, STOJ, CZEKAJ); -- lista instrukcji pracy interpretera
+  type     INSTRUKCJA	is (WCZYTAJ, ZACZWYSYL, WYSYLAJ, STOJ, CZEKAJ); -- lista instrukcji pracy interpretera
   signal   rozkaz	:INSTRUKCJA;				-- rejestr maszyny stanow interpretera
   
-  type		DZIALANIE is (INICJUJ, DODAJ, ODEJMIJ, LICZ);
+  type		DZIALANIE is (INICJUJ, DODAJ, ODEJMIJ);
   signal 	operacja: DZIALANIE;
 
   signal   wynik		:integer ;		-- liczba argumentu 1
   signal   obecny: integer;
+  
+  signal   odbieranie	:std_logic;
+  
+  signal dlugosc_wyniku :integer;
 
   constant SLOWO_ZERO	:std_logic_vector(B_SLOWA-1 downto 0) := (others => '0'); -- slowo z ustawiona wartoscia 0
   
@@ -110,78 +114,83 @@ begin								-- cialo architekury sumowania
 		operacja <= INICJUJ;
 		wynik <= 0;
 		obecny <= 0;
+		odbieranie <= '1';
 
      elsif (rising_edge(C)) then				-- synchroniczna praca kalkulatora
 
        tx_nadaj	<= '0';						-- defaultowe ustawienie flagi zadania nadawania
-
-		if (rx_gotowe='1') then				-- obsluga potwierdzenia odbioru slowa przez 'SERIAL_RX'
-         tx_slowo <= rx_slowo;					-- ustawienie slowa nadawania na slowo odebrane (echo)
-         tx_nadaj <= '1';					-- ustawienie flagi zadania nadawania przez 'SERIAL_TX'
-			case rozkaz is					-- badanie aktualnego stanu maszyny interpretera 
-				when WCZYTAJ =>					-- obsluga stanu ARGUMENT1
-				if (rx_slowo=kod_znaku('+')) then
-					case operacja is
-						when INICJUJ => wynik <= obecny;
-						when DODAJ => wynik <= wynik + obecny;
-						when ODEJMIJ => wynik <= wynik - obecny;
-						when LICZ => rozkaz <= STOJ;
-					end case;
-					operacja <= DODAJ;
-					obecny <= 0;
-				elsif (rx_slowo=kod_znaku('-')) then
-					case operacja is
-						when INICJUJ => wynik <= obecny;
-						when DODAJ => wynik <= wynik + obecny;
-						when ODEJMIJ => wynik <= wynik - obecny;
-						when LICZ => rozkaz <= STOJ;
-					end case;
-					operacja <= ODEJMIJ;
-					obecny <= 0;
-				elsif (rx_slowo=kod_znaku('=')) then
-					case operacja is
-						when INICJUJ => wynik <= obecny;
-						when DODAJ => wynik <= wynik + obecny;
-						when ODEJMIJ => wynik <= wynik - obecny;
-						when LICZ => rozkaz <= STOJ;
-					end case;
-					rozkaz <= WYSYLAJ;
-					obecny <= 0;
-				elsif (wyzn_cyfre(rx_slowo)/=10) then		-- odebrano znak cyfry
-					wczytana := wyzn_cyfre(rx_slowo);		-- zapamietanie warosci cyfry w wektorze arg1
-					obecny <= (obecny * 10) + wczytana;
-				 else
-					rozkaz <= STOJ;
-				 end if;
-				 
-				 when STOJ => null;
-				 when others =>null;
-         end case;
-       end if;							-- zakonczenie instukcji warunkowej
-		 
-		 case rozkaz is
-			when WYSYLAJ =>
-				 if (wynik = 0) then
-					rozkaz <= STOJ;
-				 elsif (wynik<0) then
-					tx_slowo <= SLOWO_ZERO+character'pos('-');
-					tx_nadaj <= '1';
-					wynik <= -wynik;
-					rozkaz <= CZEKAJ;
-				 else
-					tx_slowo <= SLOWO_ZERO+character'pos('0')+wynik/(10 ** (integer(ceil(log10(real(wynik)))) - 1));
-					wynik <= wynik mod (10 ** (integer(ceil(log10(real(wynik)))) - 1));
-					tx_nadaj <= '1';
-					rozkaz <= CZEKAJ;
-				 end if;
-				 
-			when CZEKAJ =>
-				 if (tx_nadaj='0' and tx_wysylanie='0') then
-					 rozkaz <= WYSYLAJ;
-				 end if;
-				 
-			when others =>null;
-		end case;
+		
+		if (odbieranie ='1') then
+			if (rx_gotowe='1') then				-- obsluga potwierdzenia odbioru slowa przez 'SERIAL_RX'
+				case rozkaz is					-- badanie aktualnego stanu maszyny interpretera 
+					when WCZYTAJ =>					-- obsluga stanu ARGUMENT1
+					if (rx_slowo=kod_znaku('+')) then
+						case operacja is
+							when INICJUJ => wynik <= obecny;
+							when DODAJ => wynik <= wynik + obecny;
+							when ODEJMIJ => wynik <= wynik - obecny;
+						end case;
+						operacja <= DODAJ;
+						obecny <= 0;
+					elsif (rx_slowo=kod_znaku('-')) then
+						case operacja is
+							when INICJUJ => wynik <= obecny;
+							when DODAJ => wynik <= wynik + obecny;
+							when ODEJMIJ => wynik <= wynik - obecny;
+						end case;
+						operacja <= ODEJMIJ;
+						obecny <= 0;
+					elsif (rx_slowo=kod_znaku('=')) then
+						case operacja is
+							when INICJUJ => wynik <= obecny;
+							when DODAJ => wynik <= wynik + obecny;
+							when ODEJMIJ => wynik <= wynik - obecny;
+						end case;
+						rozkaz <= ZACZWYSYL;
+						obecny <= 0;
+						odbieranie <= '0';
+					elsif (wyzn_cyfre(rx_slowo)/=10) then		-- odebrano znak cyfry
+						wczytana := wyzn_cyfre(rx_slowo);		-- zapamietanie warosci cyfry w wektorze arg1
+						obecny <= (obecny * 10) + wczytana;
+					 else
+						rozkaz <= STOJ;
+					 end if;
+					 
+					 when others =>null;
+				end case;
+			 end if;							-- zakonczenie instukcji warunkowej
+		 else
+			 case rozkaz is
+				when ZACZWYSYL =>
+					if(wynik <0) then
+						tx_slowo <= SLOWO_ZERO+character'pos('-');
+						tx_nadaj <= '1';
+						wynik <= -wynik;
+						rozkaz <= CZEKAJ;
+						dlugosc_wyniku <= integer(ceil(log10(real(-wynik))));
+					else
+						dlugosc_wyniku <= integer(ceil(log10(real(wynik))));
+						rozkaz <= WYSYLAJ;
+					end if;
+				when WYSYLAJ =>
+					 if (dlugosc_wyniku > 0) then
+						tx_slowo <= SLOWO_ZERO+character'pos('0')+wynik/(10 ** (dlugosc_wyniku - 1));
+						wynik <= wynik mod (10 ** (dlugosc_wyniku - 1));
+						tx_nadaj <= '1';
+						rozkaz <= CZEKAJ;
+						dlugosc_wyniku <= dlugosc_wyniku - 1;
+					else
+						rozkaz <= STOJ;
+					 end if;
+					 
+				when CZEKAJ =>
+					 if (tx_nadaj='0' and tx_wysylanie='0') then
+						 rozkaz <= WYSYLAJ;
+					 end if;
+					 
+				when others =>null;
+			end case;
+		end if;
 		
 		write(my_line, string'("Wyniki:"));   -- formatting
 			writeline(output, my_line);               -- write to "output"
