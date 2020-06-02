@@ -25,7 +25,7 @@ architecture behavioural of SERIAL_SUM_TB is
   constant O_ZEGARA	:time := 1 sec/F_ZEGARA;
   constant O_BITU	:time := 1 sec/L_BODOW;
 
-  constant ROZKAZ	:string := "125-453-67+9-30=";
+  constant ROZKAZ	:string := "120-40-80=";
   --constant ROZKAZ	:string := "123-"&CR&"123+678=";
   signal   WYNIK	:string(ROZKAZ'length+L_CYFR downto 1);
  

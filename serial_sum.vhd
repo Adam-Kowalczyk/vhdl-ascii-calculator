@@ -162,7 +162,10 @@ begin								-- cialo architekury sumowania
 		 else
 			 case rozkaz is
 				when ZACZWYSYL =>
-					if(wynik <0) then
+					if(wynik = 0) then
+						dlugosc_wyniku <= 1;
+						rozkaz <= WYSYLAJ;
+					elsif(wynik <0) then
 						tx_slowo <= SLOWO_ZERO+character'pos('-');
 						tx_nadaj <= '1';
 						wynik <= -wynik;
@@ -196,12 +199,12 @@ begin								-- cialo architekury sumowania
 			writeline(output, my_line);               -- write to "output"
 			write(my_line, string'("  wynik= "));
 			write(my_line, wynik);  -- format 'counter' as integer
-			write(my_line, string'("  obecny= "));
+			write(my_line, string'("  wczytana liczba= "));
 			write(my_line, obecny);                     -- format time
 			writeline(output, my_line);
  
-     end if;							-- zakonczenie instukcji warunkowej proces
+     end if;
 
-   end process;							-- zakonczenie ciala kalkulatora
+   end process;
 end behavioural;
 
