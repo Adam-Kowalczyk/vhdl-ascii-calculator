@@ -38,11 +38,11 @@ architecture behavioural of SERIAL_CALCULATOR is
 	signal operacja : DZIALANIE;
 	signal przed_mnozeniem : DZIALANIE;
 
-	signal wynik : integer; 
-	signal obecny : integer;
-	signal wyn_mnozenia : integer;
+	signal wynik : integer range -1000000 to 1000000; 
+	signal obecny : integer range -1000000 to 1000000;
+	signal wyn_mnozenia : integer range -1000000 to 1000000;
 	signal odbieranie : std_logic;
-	signal dlugosc_wyniku : integer;
+	signal dlugosc_wyniku : integer range 0 to 10;
 
 	constant WYZEROWANE_SLOWO : std_logic_vector(WIELKOSC_SLOWA - 1 downto 0) := (others => '0');
  
@@ -96,7 +96,30 @@ begin
 				else
 					return(10); 
 				end if; 
-		end function; 
+		end function;
+		
+		function f_log10 (x : integer) return natural is
+			variable i : natural;
+		begin
+			i := 0;  
+			while (10**i <= x) and i < 10 loop
+				i := i + 1;
+			end loop;
+			return i;
+		end function;
+		
+		function pot10 (x : integer) return natural is
+			variable wyn :natural;
+			variable i : natural;
+		begin
+			i := 1;
+			wyn := 1;  
+			while (i <= x) loop
+				wyn := wyn * 10;
+				i := i + 1;
+			end loop;
+			return wyn;
+		end function;
 
 		variable wczytana : natural range 0 to 9;
 
@@ -177,16 +200,16 @@ begin
 							tx_nadaj <= '1';
 							wynik <= - wynik;
 							rozkaz <= CZEKAJ;
-							dlugosc_wyniku <= integer(ceil(log10(real( - wynik))));
+							dlugosc_wyniku <= f_log10(-wynik);
 						else
-							dlugosc_wyniku <= integer(ceil(log10(real(wynik))));
+							dlugosc_wyniku <= f_log10(wynik);
 							rozkaz <= WYSYLAJ;
 						end if;
 						
 					when WYSYLAJ => 
 						if (dlugosc_wyniku > 0) then
-							tx_slowo <= WYZEROWANE_SLOWO + character'pos('0') + wynik/(10 ** (dlugosc_wyniku - 1));
-							wynik <= wynik mod (10 ** (dlugosc_wyniku - 1));
+							tx_slowo <= WYZEROWANE_SLOWO + character'pos('0') + wynik/(pot10(dlugosc_wyniku - 1));
+							wynik <= wynik mod (pot10(dlugosc_wyniku - 1));
 							tx_nadaj <= '1';
 							rozkaz <= CZEKAJ;
 							dlugosc_wyniku <= dlugosc_wyniku - 1;
@@ -202,17 +225,6 @@ begin
 					when others => null;
 				end case;
 			end if;
-
-			write(my_line, string'("Wyniki:")); 
-			writeline(output, my_line); 
-			write(my_line, string'(" wynik= "));
-			write(my_line, wynik); 
-			write(my_line, string'(" wczytana liczba= "));
-			write(my_line, obecny);
-			write(my_line, string'(" mnozona liczba= "));
-			write(my_line, wyn_mnozenia);
-			writeline(output, my_line);
-
 		end if;
 
 	end process;
