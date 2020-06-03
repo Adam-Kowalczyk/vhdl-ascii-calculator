@@ -120,6 +120,32 @@ begin
 			end loop;
 			return wyn;
 		end function;
+		
+		function findFirst (liczba, pot : natural) return natural is
+			variable temp : natural;
+			variable i : natural;
+		begin
+			i := 0;
+			temp := liczba;  
+			while (temp >= pot) loop
+				temp := temp - pot;
+				i := i + 1;
+			end loop;
+			return i;
+		end function;
+		
+		function divisionRest (liczba, pot : natural) return natural is
+			variable temp : natural;
+			variable i : natural;
+		begin
+			i := 0;
+			temp := liczba;  
+			while (temp >= pot) loop
+				temp := temp - pot;
+				i := i + 1;
+			end loop;
+			return temp;
+		end function;
 
 		variable wczytana : natural range 0 to 9;
 
@@ -208,8 +234,8 @@ begin
 						
 					when WYSYLAJ => 
 						if (dlugosc_wyniku > 0) then
-							tx_slowo <= WYZEROWANE_SLOWO + character'pos('0') + wynik/(pot10(dlugosc_wyniku - 1));
-							wynik <= wynik mod (pot10(dlugosc_wyniku - 1));
+							tx_slowo <= WYZEROWANE_SLOWO + character'pos('0') + findFirst(wynik, pot10(dlugosc_wyniku - 1));
+							wynik <= divisionRest(wynik, pot10(dlugosc_wyniku - 1));
 							tx_nadaj <= '1';
 							rozkaz <= CZEKAJ;
 							dlugosc_wyniku <= dlugosc_wyniku - 1;
