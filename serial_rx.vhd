@@ -51,74 +51,69 @@ begin
        BLAD	<= '0';						
 
      elsif (rising_edge(C)) then				
-
        GOTOWE     <= '0';					
        BLAD       <= '0';					
        wejscie(0) <= RX;					
        wejscie(1) <= wejscie(0);				
 
        case stan is						
-
          when CZEKANIE =>					
-           l_czasu <= 0;					
-           l_bitow <= 0;					
-           bufor   <= (others => '0');				
-           problem <= '0';					
-	   if (wejscie(1)='0' and wejscie(0)='1') then		
-	     stan   <= START;					
-	   end if;						
+				  l_czasu <= 0;					
+				  l_bitow <= 0;					
+				  bufor   <= (others => '0');				
+				  problem <= '0';					
+				if (wejscie(1)='0' and wejscie(0)='1') then		
+				  stan   <= START;					
+				end if;						
 
          when START =>						
-	   if (l_czasu /= T/2) then				
-	     l_czasu <= l_czasu + 1;				
-	   else							
-             l_czasu <= 0;					
-	     stan    <= DANA;					
-	     if (wejscie(1) = '0') then				
-               problem <= '1';					
-	     end if;						
-	   end if;						
+				if (l_czasu /= T/2) then				
+				  l_czasu <= l_czasu + 1;				
+				else							
+					l_czasu <= 0;					
+				  stan    <= DANA;					
+				  if (wejscie(1) = '0') then				
+							problem <= '1';					
+				  end if;						
+				end if;						
 
          when DANA =>						
-	   if (l_czasu /= T) then				
-	     l_czasu <= l_czasu + 1;				
-	   else							
-	     bufor(bufor'left) <= wejscie(1);			
-	     bufor(bufor'left-1 downto 0) <= bufor(bufor'left downto 1); 
-             l_czasu <= 0;					
-	     
-	     if (l_bitow /= B_SLOWA-1) then			
-	       l_bitow <= l_bitow + 1;				
-	     else						
-	       l_bitow <= 0;					
-	         stan <= STOP;					
-	     end if; 						
-
-	   end if;						
+				if (l_czasu /= T) then				
+				  l_czasu <= l_czasu + 1;				
+				else							
+				  bufor(bufor'left) <= wejscie(1);			
+				  bufor(bufor'left-1 downto 0) <= bufor(bufor'left downto 1); 
+					l_czasu <= 0;									  
+				  if (l_bitow /= B_SLOWA-1) then			
+					 l_bitow <= l_bitow + 1;				
+				  else						
+					 l_bitow <= 0;					
+						stan <= STOP;					
+				  end if; 						
+				end if;						
 
          when STOP =>						
-	   if (l_czasu /= T) then				
-	     l_czasu <= l_czasu + 1;				
-	   else							
-             l_czasu <= 0;					
+				if (l_czasu /= T) then				
+				  l_czasu <= l_czasu + 1;				
+				else							
+						 l_czasu <= 0;					
 
-	     if (l_bitow /= B_STOPOW-1) then			
-	       l_bitow <= l_bitow + 1;				
-	       if (wejscie(1) = '1') then			
-                 problem <= '1';				
-	       end if; 						
-	     else						
-	       if (problem = '0' and wejscie(1) = '0') then	
-                 SLOWO <= bufor;				
-                 GOTOWE <= '1';					
-	       else						
-                 SLOWO <= (others => '0');			
-                 BLAD <= '1';					
-	       end if;						
-	       stan <= CZEKANIE;				
-	     end if;						
-
-	   end if;						
+				  if (l_bitow /= B_STOPOW-1) then			
+					 l_bitow <= l_bitow + 1;				
+					 if (wejscie(1) = '1') then			
+							  problem <= '1';				
+					 end if; 						
+				  else						
+					 if (problem = '0' and wejscie(1) = '0') then	
+							  SLOWO <= bufor;				
+							  GOTOWE <= '1';					
+					 else						
+							  SLOWO <= (others => '0');			
+							  BLAD <= '1';					
+					 end if;						
+					 stan <= CZEKANIE;				
+				  end if;						
+				end if;						
 
        end case;						
 

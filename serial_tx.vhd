@@ -40,12 +40,12 @@ begin
    begin
 
      if (R='1') then						
-       bufor	    <= (others => '0');				
-       stan	    <= CZEKANIE;				
-       l_czasu      <= 0;					
-       l_bitow      <= 0;					
-       nadawaj	    <= '0';					
-       WYSYLANIE    <= '0';					
+       bufor <= (others => '0');				
+       stan	<= CZEKANIE;				
+       l_czasu <= 0;					
+       l_bitow <= 0;					
+       nadawaj	<= '0';					
+       WYSYLANIE <= '0';					
 
      elsif (rising_edge(C)) then				
 
@@ -55,63 +55,55 @@ begin
        case stan is						
 
          when CZEKANIE =>					
-           l_czasu <= 0;					
-           l_bitow <= 0;					
-	   if (NADAJ='1') then					
-	     stan         <= START;				
-             bufor        <= SLOWO;				
-	   else							
-             WYSYLANIE <= '0';					
-	   end if;						
+				  l_czasu <= 0;					
+				  l_bitow <= 0;					
+				if (NADAJ='1') then					
+					stan <= START;				
+					bufor <= SLOWO;				
+				else							
+					WYSYLANIE <= '0';					
+				end if;						
 
          when START =>						
-	   nadawaj <= '1';					
-	   if (l_czasu /= T) then				
-	     l_czasu <= l_czasu + 1;				
-	   else							
-             l_czasu <= 0;					
-	     stan    <= DANA;					
-	   end if;						
+				nadawaj <= '1';					
+				if (l_czasu /= T) then				
+					l_czasu <= l_czasu + 1;				
+				else							
+					l_czasu <= 0;					
+					stan <= DANA;					
+				end if;						
 
          when DANA =>						
-	   nadawaj <= bufor(0);					
-	   if (l_czasu /= T) then				
-	     l_czasu <= l_czasu + 1;				
-	   else							
-	     bufor(bufor'left) <= '0';				
-	     bufor(bufor'left-1 downto 0) <= bufor(bufor'left downto 1); 
-             l_czasu <= 0;					
-	     
-	     if (l_bitow /= B_SLOWA-1) then			
-	       l_bitow <= l_bitow + 1;				
-	     else						
-	       l_bitow <= 0;					
-	         stan <= STOP;					
-	     end if; 						
-
-	   end if;						
-
-        
+				nadawaj <= bufor(0);					
+				if (l_czasu /= T) then				
+				  l_czasu <= l_czasu + 1;				
+				else							
+				  bufor(bufor'left) <= '0';				
+				  bufor(bufor'left-1 downto 0) <= bufor(bufor'left downto 1); 
+					l_czasu <= 0;									  
+				  if (l_bitow /= B_SLOWA-1) then			
+					 l_bitow <= l_bitow + 1;				
+				  else						
+					 l_bitow <= 0;					
+						stan <= STOP;					
+					end if; 						
+				end if;						       
 
          when STOP =>						
-	   if (l_czasu /= T) then				
-	     l_czasu <= l_czasu + 1;				
-	   else							
-             l_czasu <= 0;					
+				if (l_czasu /= T) then				
+				  l_czasu <= l_czasu + 1;				
+				else							
+					l_czasu <= 0;					
 
-	     if (l_bitow /= B_STOPOW-1) then			
-	       l_bitow <= l_bitow + 1;				
-	     else						
-               WYSYLANIE <= '0';				
-	       stan      <= CZEKANIE;				
- 	     end if;						
-
-	   end if;						
-
-       end case;						
-
-     end if;							
-
+				  if (l_bitow /= B_STOPOW-1) then			
+					 l_bitow <= l_bitow + 1;				
+				  else						
+					WYSYLANIE <= '0';				
+					stan <= CZEKANIE;				
+				  end if;						
+				end if;						
+			end case;						
+		end if;							
    end process;							
 
    TX <= nadawaj;		
