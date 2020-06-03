@@ -122,7 +122,7 @@ begin
 					case rozkaz is 
 					
 						when WCZYTAJ => 
-							if (rx_slowo = kod_znaku('+')) then
+							if (rx_slowo = kod_znaku('+') or rx_slowo = kod_znaku('-') or rx_slowo = kod_znaku('=')) then
 								case operacja is
 									when INICJUJ => wynik <= obecny;
 									when DODAJ => wynik <= wynik + obecny;
@@ -134,37 +134,15 @@ begin
 											when ODEJMIJ => wynik <= wynik - wyn_mnozenia * obecny;
 											when others => null;
 									end case;
-								end case;
+								end case;						
+							end if;
+							if (rx_slowo = kod_znaku('+')) then
 								operacja <= DODAJ;
 								obecny <= 0;
 							elsif (rx_slowo = kod_znaku('-')) then
-								case operacja is
-									when INICJUJ => wynik <= obecny;
-									when DODAJ => wynik <= wynik + obecny;
-									when ODEJMIJ => wynik <= wynik - obecny;
-									when MNOZENIE => 
-										case przed_mnozeniem is
-											when INICJUJ => wynik <= wyn_mnozenia * obecny;
-											when DODAJ => wynik <= wynik + wyn_mnozenia * obecny;
-											when ODEJMIJ => wynik <= wynik - wyn_mnozenia * obecny;
-											when others => null;
-									end case;
-								end case;
 								operacja <= ODEJMIJ;
 								obecny <= 0;
 							elsif (rx_slowo = kod_znaku('=')) then
-								case operacja is
-									when INICJUJ => wynik <= obecny;
-									when DODAJ => wynik <= wynik + obecny;
-									when ODEJMIJ => wynik <= wynik - obecny;
-									when MNOZENIE => 
-										case przed_mnozeniem is
-											when INICJUJ => wynik <= wyn_mnozenia * obecny;
-											when DODAJ => wynik <= wynik + wyn_mnozenia * obecny;
-											when ODEJMIJ => wynik <= wynik - wyn_mnozenia * obecny;
-											when others => null;
-									end case;
-								end case;
 								rozkaz <= ZACZWYSYL;
 								obecny <= 0;
 								odbieranie <= '0';
