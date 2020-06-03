@@ -15,7 +15,7 @@ entity UART_RX is
 		C : in std_logic; 
 		RX : in std_logic; 
 		SLOWO : out std_logic_vector(WIELKOSC_SLOWA - 1 downto 0); 
-		WYSLANE : out std_logic; 
+		ODCZYTANE : out std_logic; 
 		BLAD : out std_logic 
 	);
 end UART_RX;
@@ -45,12 +45,12 @@ begin
 			bufor <= (others => '0'); 
 			problem <= '0'; 
 			SLOWO <= (others => '0'); 
-			WYSLANE <= '0'; 
+			ODCZYTANE <= '0'; 
 			BLAD <= '0'; 
 
 		elsif (rising_edge(C)) then 
 
-			WYSLANE <= '0'; 
+			ODCZYTANE <= '0'; 
 			BLAD <= '0'; 
 			wejscie(0) <= RX; 
 			wejscie(1) <= wejscie(0); 
@@ -107,7 +107,7 @@ begin
 						else 
 							if (problem = '0' and wejscie(1) = '0') then 
 								SLOWO <= bufor; 
-								WYSLANE <= '1'; 
+								ODCZYTANE <= '1'; 
 							else 
 								SLOWO <= (others => '0'); 
 								BLAD <= '1'; 

@@ -23,13 +23,13 @@ end SERIAL_CALCULATOR;
 
 architecture behavioural of SERIAL_CALCULATOR is
 
-	signal rx_slowo : std_logic_vector(WIELKOSC_SLOWA - 1 downto 0); 
-	signal rx_gotowe : std_logic; 
-	signal rx_blad : std_logic; 
+	signal urx_slowo : std_logic_vector(WIELKOSC_SLOWA - 1 downto 0); 
+	signal urx_odczytane : std_logic; 
+	signal urx_blad : std_logic; 
 
-	signal tx_slowo : std_logic_vector(WIELKOSC_SLOWA - 1 downto 0); 
-	signal tx_nadaj : std_logic; 
-	signal tx_wysylanie : std_logic; 
+	signal utx_slowo : std_logic_vector(WIELKOSC_SLOWA - 1 downto 0); 
+	signal utx_wysylaj : std_logic; 
+	signal utx_wysylanie : std_logic; 
 
 	type INSTRUKCJA is (WCZYTAJ, ZACZWYSYL, WYSYLAJ, STOJ, CZEKAJ);
 	signal rozkaz : INSTRUKCJA; 
@@ -59,9 +59,9 @@ begin
 			R => R, 
 			C => C, 
 			TX => tx, 
-			SLOWO => tx_slowo, 
-			WYSYLAJ => tx_nadaj, 
-			WYSYLANIE => tx_wysylanie 
+			SLOWO => utx_slowo, 
+			WYSYLAJ => utx_wysylaj, 
+			WYSYLANIE => utx_wysylanie 
 		);
 	
 	urx : entity work.UART_RX(behavioural) 
@@ -75,9 +75,9 @@ begin
 			R => R, 
 			C => C, 
 			RX => RX, 
-			SLOWO => rx_slowo, 
-			WYSLANE => rx_gotowe, 
-			BLAD => rx_blad 
+			SLOWO => urx_slowo, 
+			ODCZYTANE => urx_odczytane, 
+			BLAD => urx_blad 
 		);
 
 	process (R, C) is 
@@ -153,8 +153,8 @@ begin
 
 	begin
 		if (R = '1') then 
-			tx_slowo <= (others => '0'); 
-			tx_nadaj <= '0'; 
+			utx_slowo <= (others => '0'); 
+			utx_wysylaj <= '0'; 
 			rozkaz <= WCZYTAJ; 
 			operacja <= INICJUJ;
 			wynik <= 0;
@@ -164,14 +164,14 @@ begin
 
 		elsif (rising_edge(C)) then 
 
-			tx_nadaj <= '0'; 
+			utx_wysylaj <= '0'; 
 
 			if (odbieranie = '1') then
-				if (rx_gotowe = '1') then 
+				if (urx_odczytane = '1') then 
 					case rozkaz is 
 					
 						when WCZYTAJ => 
-							if (rx_slowo = kod_znaku('+') or rx_slowo = kod_znaku('-') or rx_slowo = kod_znaku('=')) then
+							if (urx_slowo = kod_znaku('+') or urx_slowo = kod_znaku('-') or urx_slowo = kod_znaku('=')) then
 								case operacja is
 									when INICJUJ => wynik <= obecny;
 									when DODAJ => wynik <= wynik + obecny;
@@ -185,17 +185,17 @@ begin
 									end case;
 								end case;						
 							end if;
-							if (rx_slowo = kod_znaku('+')) then
+							if (urx_slowo = kod_znaku('+')) then
 								operacja <= DODAJ;
 								obecny <= 0;
-							elsif (rx_slowo = kod_znaku('-')) then
+							elsif (urx_slowo = kod_znaku('-')) then
 								operacja <= ODEJMIJ;
 								obecny <= 0;
-							elsif (rx_slowo = kod_znaku('=')) then
+							elsif (urx_slowo = kod_znaku('=')) then
 								rozkaz <= ZACZWYSYL;
 								obecny <= 0;
 								odbieranie <= '0';
-							elsif (rx_slowo = kod_znaku('*')) then
+							elsif (urx_slowo = kod_znaku('*')) then
 								if (operacja /= MNOZENIE) then
 									wyn_mnozenia <= obecny;
 									przed_mnozeniem <= operacja;
@@ -204,8 +204,8 @@ begin
 								end if;
 								operacja <= MNOZENIE;
 								obecny <= 0;
-							elsif (wyzn_cyfre(rx_slowo) /= 10) then 
-								wczytana := wyzn_cyfre(rx_slowo); 
+							elsif (wyzn_cyfre(urx_slowo) /= 10) then 
+								wczytana := wyzn_cyfre(urx_slowo); 
 								obecny <= (obecny * 10) + wczytana;
 							else
 								rozkaz <= STOJ;
@@ -222,8 +222,8 @@ begin
 							dlugosc_wyniku <= 1;
 							rozkaz <= WYSYLAJ;
 						elsif (wynik < 0) then
-							tx_slowo <= WYZEROWANE_SLOWO + character'pos('-');
-							tx_nadaj <= '1';
+							utx_slowo <= WYZEROWANE_SLOWO + character'pos('-');
+							utx_wysylaj <= '1';
 							wynik <= - wynik;
 							rozkaz <= CZEKAJ;
 							dlugosc_wyniku <= f_log10(-wynik);
@@ -234,9 +234,9 @@ begin
 						
 					when WYSYLAJ => 
 						if (dlugosc_wyniku > 0) then
-							tx_slowo <= WYZEROWANE_SLOWO + character'pos('0') + findFirst(wynik, pot10(dlugosc_wyniku - 1));
+							utx_slowo <= WYZEROWANE_SLOWO + character'pos('0') + findFirst(wynik, pot10(dlugosc_wyniku - 1));
 							wynik <= divisionRest(wynik, pot10(dlugosc_wyniku - 1));
-							tx_nadaj <= '1';
+							utx_wysylaj <= '1';
 							rozkaz <= CZEKAJ;
 							dlugosc_wyniku <= dlugosc_wyniku - 1;
 						else
@@ -244,7 +244,7 @@ begin
 						end if;
 
 					when CZEKAJ => 
-						if (tx_nadaj = '0' and tx_wysylanie = '0') then
+						if (utx_wysylaj = '0' and utx_wysylanie = '0') then
 							rozkaz <= WYSYLAJ;
 						end if;
 
